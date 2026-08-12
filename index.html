@@ -1051,26 +1051,37 @@
                 <button id="dailyBonusBtn" class="btn-neon" onclick="claimDailyBonus()">بونس لیں (+5)</button>
             </div>
 
-            <!-- Grand Prize Banner -->
-            <div class="card" style="border-color: rgba(34, 197, 94, 0.4);">
-                <div class="card-header">
-                    <div class="card-title">🏆 اس ماہ کا بمپر گرینڈ پرائز</div>
-                    <span class="reward-tag">50,000 PKR</span>
-                </div>
-                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-                    500 پوائنٹس حاصل کر کے لکی ڈرا کا مفت ٹکٹ حاصل کریں۔ قرعہ اندازی ہر ماہ کی پہلی تاریخ کو ہوتی ہے!
-                </p>
-                <div style="margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; color: var(--text-muted);">
-                        <span>پروگریس</span>
-                        <span id="drawProgressText">0 / 500 پوائنٹس</span>
-                    </div>
-                    <div style="width: 100%; height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden;">
-                        <div id="drawProgressBar" style="width: 0%; height: 100%; background: var(--neon-green); transition: width 0.3s;"></div>
-                    </div>
-                </div>
-                <button class="btn-neon" style="width: 100%; font-size: 0.9rem;" onclick="navigateTo('draw')">لکی ڈرا کی تفصیلات دیکھیں 🎁</button>
-            </div>
+        <!-- Lucky Draw 24-Hour Loop Container -->
+<div class="card" id="luckyDrawContainer" style="border-color: rgba(34, 197, 94, 0.4); margin-top: 15px;">
+    <div class="card-header">
+        <div class="card-title">🎰 لکی ڈرا (24 گھنٹے لوپ)</div>
+    </div>
+    
+    <div id="drawStatusMessage" style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-bottom: 10px;">
+        اپنے 500 پوائنٹس مکمل کریں اور لکی ڈرا میں حصہ لیں!
+    </div>
+
+    <!-- Progress Bar & Points -->
+    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 5px;">
+        <span id="drawProgressText">0 / 500 پوائنٹس</span>
+    </div>
+    <div style="width: 100%; height: 6px; background: #1e293b; border-radius: 10px; overflow: hidden; margin-bottom: 15px;">
+        <div id="drawProgressBar" style="width: 0%; height: 100%; background: var(--neon-green); transition: width 0.3s;"></div>
+    </div>
+
+    <!-- Active Buttons (Shows based on state) -->
+    <div id="drawActionContainer">
+        <!-- 1. Button to Enter Draw (Shown when user has 500 points and timer is not running) -->
+        <button id="btnEnterDraw" class="btn-neon" style="width: 100%;">🎯 لکی ڈرا میں داخل ہوں (500 پوائنٹس)</button>
+        
+        <!-- 2. Countdown Timer & Status (Shown when user is inside the 24-hour loop) -->
+        <div id="drawTimerContainer" style="display: none; text-align: center;">
+            <div style="font-size: 0.8rem; color: #ffcc00;">⏳ اگلا لکی ڈرا شروع ہونے میں باقی:</div>
+            <div id="countdownTimer" style="font-size: 1.5rem; font-weight: bold; color: var(--neon-green); margin: 10px 0;">23:59:59</div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 10px;">اگلے 24 گھنٹے بعد آپ دوبارہ ڈرا میں حصہ لے سکیں گے! 🎁</div>
+        </div>
+    </div>
+</div>
 
             <!-- Empty Ad Space Placeholder -->
             <div class="ad-placeholder">
@@ -2076,72 +2087,100 @@
         }
 
         // --- LUCKY DRAW & WITHDRAW SYSTEM ---
-        function renderLuckyDrawPage() {
-            if (!currentUser) return;
+        /* ========================================================
+   24-HOUR RECURRING LUCKY DRAW LOGIC
+   ======================================================== */
 
-            const currentPoints = currentUser.points || 0;
-            const container = document.getElementById('ticketStatusContent');
+// جب صفحہ لوڈ ہو تو چیک کریں کہ ڈرا کی کیا حالت ہے
+document.addEventListener('DOMContentLoaded', function() {
+    checkLuckyDrawStatus();
+});
 
-            if (currentUser.enteredDraw) {
-                const ticket = currentUser.drawTicket || 'LD-883920';
-                container.innerHTML = `
-                    <p style="font-size: 0.85rem; color: var(--neon-green); font-weight: 800;">✅ آپ کامیابی سے اس ماہ کے گرینڈ ڈرا میں شامل ہیں!</p>
-                    <div class="ticket-number">#${ticket}</div>
-                    <p style="font-size: 0.75rem; color: var(--text-muted);">قرعہ اندازی ہر ماہ کی 1 تاریخ کو خودکار طریقے سے ہوگی۔</p>
-                `;
-            } else {
-                container.innerHTML = `
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 8px 0;">قرعہ اندازی میں اینٹری کے لیے 500 پوائنٹس درکار ہیں۔</p>
-                    <button id="enterDrawBtn" class="btn-neon" style="margin-top: 10px;" ${currentPoints < 500 ? 'disabled' : ''} onclick="enterLuckyDraw()">
-                        ${currentPoints < 500 ? 'کم از کم 500 پوائنٹس درکار ہیں' : 'اینٹری لیں (500 پوائنٹس)'}
-                    </button>
-                `;
-            }
+// اس فنکشن کو ٹاسک مکمل ہونے پر (جب پوائنٹس 500 ہوں) کال کریں
+function triggerLuckyDrawEntry() {
+    let user = getCurrentUser(); // آپ کا موجودہ یوزر حاصل کرنے کا فنکشن
+    if (!user) return;
 
-            document.getElementById('withdrawBalanceTag').innerText = `Rs. ${currentUser.balance || 0}`;
-        }
+    // چیک کریں کہ کیا یوزر کے پاس 500 پوائنٹس ہیں
+    if (user.points >= 500) {
+        // موجودہ ٹائم اسٹیمپ محفوظ کریں (جب یوزر نے ڈرا کیا)
+        const now = Date.now();
+        user.lastDrawTimestamp = now;
+        updateUserData(user); // ڈیٹا localStorage میں محفوظ کریں
+        
+        alert("🎉 مبارک ہو! آپ اس راؤنڈ کے لکی ڈرا میں شامل ہو گئے ہیں۔ اگلا ڈرا 24 گھنٹے بعد ہوگا!");
+        
+        // UI کو اپ ڈیٹ کریں
+        checkLuckyDrawStatus();
+    } else {
+        alert("لکی ڈرا میں شامل ہونے کے لیے آپ کو 500 پوائنٹس چاہیے!");
+    }
+}
 
-        function enterLuckyDraw() {
-            if (!currentUser) return;
-            if ((currentUser.points || 0) < 500) {
-                showToast('آپ کے پاس 500 پوائنٹس مکمل نہیں ہیں!', 'error');
-                return;
-            }
+// یہ مین فنکشن ہے جو 24 گھنٹے کا ٹائمر چلاتا ہے
+function checkLuckyDrawStatus() {
+    let user = getCurrentUser();
+    if (!user) return;
 
-            currentUser.points -= 500;
-            currentUser.enteredDraw = true;
-            currentUser.drawTicket = 'LD-' + Math.floor(100000 + Math.random() * 900000);
+    const now = Date.now();
+    const drawBtn = document.getElementById('btnEnterDraw');
+    const timerContainer = document.getElementById('drawTimerContainer');
+    const timerDisplay = document.getElementById('countdownTimer');
+    const statusMsg = document.getElementById('drawStatusMessage');
 
-            saveCurrentUserData();
-            showToast('مبارک ہو! آپ لکی ڈرا میں شامل ہو چکے ہیں۔ ٹکٹ: #' + currentUser.drawTicket);
-            updateUserDisplays();
-            renderLuckyDrawPage();
-        }
+    // اگر یوزر نے پہلے کبھی ڈرا نہیں کیا
+    if (!user.lastDrawTimestamp) {
+        drawBtn.style.display = 'block';
+        timerContainer.style.display = 'none';
+        statusMsg.innerText = "500 پوائنٹس مکمل کریں اور بٹن دبا کر ڈرا میں شامل ہوں!";
+        updateProgressBar(user.points);
+        return;
+    }
 
-        function handleWithdraw(e) {
-            e.preventDefault();
-            if (!currentUser) return;
+    // 24 گھنٹے = 24 * 60 * 60 * 1000 ملی سیکنڈز
+    const COOLDOWN_TIME = 24 * 60 * 60 * 1000; 
+    const nextDrawTime = user.lastDrawTimestamp + COOLDOWN_TIME;
+    const timeRemaining = nextDrawTime - now;
 
-            const method = document.getElementById('withdrawMethod').value;
-            const account = document.getElementById('withdrawAccount').value.trim();
-            const amount = parseInt(document.getElementById('withdrawAmount').value);
+    // اگر ٹائمر ختم ہو چکا ہے (یعنی 24 گھنٹے پورے ہو گئے)
+    if (timeRemaining <= 0) {
+        // یوزر دوبارہ ڈرا کر سکتا ہے
+        drawBtn.style.display = 'block';
+        timerContainer.style.display = 'none';
+        statusMsg.innerText = "🎯 24 گھنٹے پورے! اب آپ دوبارہ لکی ڈرا میں داخل ہو سکتے ہیں!";
+        updateProgressBar(user.points);
+        
+        // دوبارہ ڈرا کرنے کا بٹن دبائیں تو نیا ٹائم اسٹیمپ سیٹ ہوگا
+        drawBtn.onclick = function() {
+            triggerLuckyDrawEntry();
+        };
+    } 
+    // اگر ٹائمر ابھی چل رہا ہے
+    else {
+        // بٹن چھپائیں اور ٹائمر دکھائیں
+        drawBtn.style.display = 'none';
+        timerContainer.style.display = 'block';
+        statusMsg.innerText = "⏳ آپ اس راؤنڈ میں داخل ہیں! اگلے ڈرا کا انتظار کریں۔";
 
-            const currentBal = currentUser.balance || 0;
+        // باقی ماندہ ٹائم کو گھنٹوں، منٹوں اور سیکنڈز میں تبدیل کریں
+        const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
 
-            if (amount > currentBal) {
-                showToast('آپ کا بقایا بیلنس اس رقم سے کم ہے!', 'error');
-                return;
-            }
+        timerDisplay.innerText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-            currentUser.balance -= amount;
-            saveCurrentUserData();
+        // ہر 1 سیکنڈ بعد ٹائمر کو اپ ڈیٹ کریں
+        setTimeout(checkLuckyDrawStatus, 1000);
+    }
+}
 
-            showToast(`Rs. ${amount} کی درخواست (${method}: ${account}) موصول ہو گئی!`);
-            updateUserDisplays();
-            renderLuckyDrawPage();
-            e.target.reset();
-        }
-
+// پروگریس بار کو اپ ڈیٹ کرنے کا فنکشن
+function updateProgressBar(currentPoints) {
+    const maxPoints = 500;
+    let percentage = Math.min((currentPoints / maxPoints) * 100, 100);
+    document.getElementById('drawProgressBar').style.width = percentage + '%';
+    document.getElementById('drawProgressText').innerText = `${Math.min(currentPoints, maxPoints)} / ${maxPoints} پوائنٹس`;
+}
         // --- LEADERBOARD PAGE ---
         function renderLeaderboard() {
             if (!currentUser) return;
